@@ -12,6 +12,7 @@ const { ALLOWED_SYMBOLS } = require('../config');
 const { saveSpread } = require('../db/database');
 const { saveAlert } = require('./alert.service');
 const { logger } = require('../utils/logger');
+const liveSimulation = require('./LiveSimulationEngine');
 
 const TAG = 'Aggregator';
 
@@ -101,6 +102,7 @@ function performBroadcast() {
 /**
  * Update cache and recalculate spreads
  * Only uses fresh data (not stale)
+ * V3: Also triggers simulation engine for ghost mode
  */
 function updateAndRecalculate() {
     const now = Date.now();
@@ -111,8 +113,15 @@ function updateAndRecalculate() {
         return isFresh(data.timestamp);
     });
 
-    // Save to DB and check for alerts
+    // Save to DB, check for alerts, and run simulation
     Object.values(PRICE_CACHE).forEach(pair => {
+        // V3 Ghost Mode: Process spread for simulation
+        liveSimulation.processSpread(pair.symbol, {
+            vest: pair.vest,
+            lighter: pair.lighter,
+            paradex: pair.paradex
+        });
+
         if (pair.bestBid > 0 && pair.bestAsk > 0) {
             const lastSave = lastDbSave.get(pair.symbol) || 0;
 
@@ -214,7 +223,7 @@ function getStats() {
 }
 
 /**
- * Start all services (V2: WebSocket-primary)
+ * Start all services (V2: WebSocket-primary + V3 Ghost Mode)
  */
 async function startScheduler() {
     logger.info(TAG, 'Starting V2 services (WebSocket-primary with REST fallback)...');
@@ -225,6 +234,9 @@ async function startScheduler() {
         PRICE_CACHE[symbol] = createPair(symbol);
     });
     logger.info(TAG, `Initialized cache with ${Object.keys(PRICE_CACHE).length} symbols`);
+
+    // V3: Initialize Ghost Mode simulation engine
+    liveSimulation.init();
 
     // Start Paradex WebSocket (already WS-only)
     paradexWS = new ParadexWebSocketService();
@@ -245,7 +257,7 @@ async function startScheduler() {
     await lighterHybridService.start();
     logger.info(TAG, 'Lighter Hybrid Service started (WS primary, REST fallback)');
 
-    logger.info(TAG, '✓ All V2 services started - Full WebSocket mode active');
+    logger.info(TAG, '✓ All V2+V3 services started - Ghost Mode active');
 }
 
 /**

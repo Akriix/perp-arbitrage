@@ -9,6 +9,17 @@ module.exports = {
     CONCURRENCY: 5,              // Max parallel API requests
     REQUEST_TIMEOUT: 10000,      // 10 seconds
 
+    // Simulation Configuration (V3 Ghost Mode)
+    SIMULATION: {
+        ENABLED: true,                                          // Enable/disable simulation
+        POSITION_SIZE_USD: Number(process.env.SIM_POSITION_SIZE) || 1000,
+        GOLDEN_THRESHOLD_PERCENT: Number(process.env.GOLDEN_THRESHOLD_PERCENT) || 0.5,  // Alert if net profit > 0.5%
+        SLIPPAGE_PERCENT: Number(process.env.SIM_SLIPPAGE) || 0.1,  // Conservative 0.1% slippage
+        MIN_SPREAD_PERCENT: 0.15,                              // Minimum spread to simulate
+        MIN_DURATION_MS: 600,                                  // Spread must last 600ms+ to be capturable
+        DASHBOARD_INTERVAL: 30000,                             // Print dashboard every 30s
+    },
+
     COMMON_HEADERS: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         'Accept': 'application/json, text/plain, */*',
@@ -28,3 +39,4 @@ module.exports = {
         'BTC', 'ETH', 'SOL', 'PAXG', 'RESOLV', 'BERA', 'KAITO'
     ]
 };
+
