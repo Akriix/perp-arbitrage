@@ -30,7 +30,7 @@ function App() {
   const [positions, setPositions] = useLocalStorage('active_positions', []);
 
   // --- Hooks and Data ---
-  const { pairs, isLoading, error, refresh, refreshInterval, setRefreshInterval } = useMarketData();
+  const { pairs, priceTrends, isLoading, error, refresh, refreshInterval, setRefreshInterval } = useMarketData();
   const { minSpread, soundEnabled } = useAlerts();
 
   // Helper functions
@@ -138,6 +138,7 @@ function App() {
                   hasCustomThreshold={pairThresholds.hasOwnProperty(row.symbol)}
                   updateThreshold={updateThreshold}
                   minSpread={minSpread}
+                  trend={priceTrends[row.symbol]}
                 />
               ))}
             </AnimatePresence>
