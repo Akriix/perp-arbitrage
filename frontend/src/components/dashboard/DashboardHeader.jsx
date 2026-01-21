@@ -12,7 +12,8 @@ export default function DashboardHeader({
     onAddPosition,
     isFocusMode,
     setIsFocusMode,
-    monitoredCount
+    monitoredCount,
+    onOpenAlarms
 }) {
     const toggleExchange = (ex) => {
         setEnabledExchanges(prev => ({ ...prev, [ex]: !prev[ex] }));
@@ -110,6 +111,14 @@ export default function DashboardHeader({
                     >
                         <BarChart3 className="w-4 h-4" />
                         Suivi
+                    </button>
+
+                    <button
+                        onClick={onOpenAlarms}
+                        className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-gray-500 hover:text-white hover:bg-gray-800 transition-colors mr-2"
+                        title="Manage Active Alarms"
+                    >
+                        <Bell className="w-4 h-4" />
                     </button>
                     <div className="h-6 w-[1px] bg-gray-800 mx-2"></div>
 

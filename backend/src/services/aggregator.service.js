@@ -10,6 +10,9 @@ const { calculateSpreads } = require('./spread.service');
 const { ALLOWED_SYMBOLS } = require('../config');
 const { saveSpread } = require('../db/database');
 const { saveAlert } = require('./alert.service');
+const { logger } = require('../utils/logger');
+
+const TAG = 'Aggregator';
 
 // Constants
 const ALERT_THRESHOLD = 0.5; // Log alerts for spreads > 0.5%
@@ -115,7 +118,7 @@ function updateAndRecalculate() {
 
             // Check for Alert
             if (pair.realSpread >= ALERT_THRESHOLD) {
-                saveAlert(pair).catch(err => console.error("Failed to save alert:", err));
+                saveAlert(pair).catch(err => logger.error(TAG, 'Failed to save alert', err));
             }
         }
     });
@@ -156,7 +159,7 @@ async function updateVestData() {
 
         updateAndRecalculate();
     } catch (error) {
-        console.error('[Aggregator] Error fetching Vest data:', error.message);
+        logger.error(TAG, 'Error fetching Vest data', error);
     }
 }
 
@@ -177,7 +180,7 @@ async function updateLighterData() {
 
         updateAndRecalculate();
     } catch (error) {
-        console.error('[Aggregator] Error fetching Lighter data:', error.message);
+        logger.error(TAG, 'Error fetching Lighter data', error);
     }
 }
 
@@ -199,45 +202,45 @@ function getPriceCache() {
  * Start WebSocket connections and schedulers
  */
 function startScheduler() {
-    console.log('[Aggregator] Starting services...');
+    logger.info(TAG, 'Starting services...');
 
     // Initialize cache with ONLY allowed symbols (Clear any previous stale data)
     PRICE_CACHE = {};
     ALLOWED_SYMBOLS.forEach(symbol => {
         PRICE_CACHE[symbol] = createPair(symbol);
     });
-    console.log(`[Aggregator] Initialized cache with ${Object.keys(PRICE_CACHE).length} symbols: ${ALLOWED_SYMBOLS.join(', ')}`);
+    logger.info(TAG, `Initialized cache with ${Object.keys(PRICE_CACHE).length} symbols: ${ALLOWED_SYMBOLS.join(', ')}`);
 
 
     // Start Paradex WebSocket
     paradexWS = new ParadexWebSocketService();
     paradexWS.on('data', handleParadexData);
     paradexWS.on('error', (error) => {
-        console.error('[Aggregator] Paradex WebSocket error:', error.message);
+        logger.error(TAG, 'Paradex WebSocket error', error);
     });
     paradexWS.connect();
 
     // Start Lighter REST polling (2 seconds interval for faster updates)
-    console.log('[Aggregator] Starting Lighter REST polling (2s)');
+    logger.info(TAG, 'Starting Lighter REST polling (2s)');
     updateLighterData(); // Initial fetch
     if (lighterInterval) clearInterval(lighterInterval);
     lighterInterval = setInterval(updateLighterData, 2000);
 
     // Start Vest REST polling (2 seconds interval for faster updates)
-    console.log('[Aggregator] Starting Vest REST polling (2s)');
+    logger.info(TAG, 'Starting Vest REST polling (2s)');
     updateVestData(); // Initial fetch
     if (vestInterval) clearInterval(vestInterval);
     vestInterval = setInterval(updateVestData, 2000);
 
     // FIXED: Broadcaster is now event-driven via throttledBroadcast() in updateAndRecalculate()
-    console.log('[Aggregator] All services started');
+    logger.info(TAG, 'All services started');
 }
 
 /**
  * Stop all connections and schedulers
  */
 function stopScheduler() {
-    console.log('[Aggregator] Stopping all connections...');
+    logger.info(TAG, 'Stopping all connections...');
 
     if (paradexWS) {
         paradexWS.disconnect();
@@ -265,7 +268,7 @@ function stopScheduler() {
  */
 function setWebSocketBroadcaster(broadcaster) {
     wsBroadcaster = broadcaster;
-    console.log('[Aggregator] WebSocket broadcaster registered');
+    logger.info(TAG, 'WebSocket broadcaster registered');
 }
 
 module.exports = {

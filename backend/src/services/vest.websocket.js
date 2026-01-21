@@ -6,8 +6,10 @@
 const WebSocket = require('ws');
 const EventEmitter = require('events');
 const { ALLOWED_SYMBOLS } = require('../config');
+const { logger } = require('../utils/logger');
 
 const WS_BASE_URL = 'wss://wsprod.vest.exchange/ws-api?version=1.0';
+const TAG = 'VestWS';
 
 class VestWebSocketService extends EventEmitter {
     constructor() {
@@ -28,12 +30,12 @@ class VestWebSocketService extends EventEmitter {
         try {
             // Requirement: xwebsocketserver=restserver
             const url = `${WS_BASE_URL}&xwebsocketserver=restserver`;
-            console.log(`[VestWS] Connecting to ${url}...`);
+            logger.info(TAG, `Connecting to ${url}...`);
 
             this.ws = new WebSocket(url);
 
             this.ws.on('open', () => {
-                console.log('[VestWS] Connected successfully');
+                logger.info(TAG, 'Connected successfully');
                 this.isConnected = true;
                 this.reconnectAttempts = 0;
                 this.startPing();
@@ -45,25 +47,25 @@ class VestWebSocketService extends EventEmitter {
             });
 
             this.ws.on('error', (error) => {
-                console.error('[VestWS] WebSocket error:', error.message);
+                logger.error(TAG, 'WebSocket error', error);
             });
 
             this.ws.on('close', () => {
-                console.log('[VestWS] Connection closed');
+                logger.info(TAG, 'Connection closed');
                 this.isConnected = false;
                 this.stopPing();
                 this.scheduleReconnect();
             });
 
         } catch (error) {
-            console.error('[VestWS] Connection error:', error.message);
+            logger.error(TAG, 'Connection error', error);
             this.scheduleReconnect();
         }
     }
 
     subscribeToAllowedMarkets() {
         const params = ALLOWED_SYMBOLS.map(symbol => `${symbol}-PERP@depth`);
-        console.log(`[VestWS] Subscribing to: ${params.join(', ')}`);
+        logger.debug(TAG, `Subscribing to: ${params.join(', ')}`);
 
         const msg = {
             method: 'SUBSCRIBE',
@@ -127,11 +129,12 @@ class VestWebSocketService extends EventEmitter {
     scheduleReconnect() {
         if (this.reconnectAttempts < this.maxReconnectAttempts) {
             this.reconnectAttempts++;
+            // Exponential backoff: 3s, 6s, 9s, 12s, 15s (capped)
             const delay = this.reconnectDelay * Math.min(this.reconnectAttempts, 5);
-            console.log(`[VestWS] Reconnecting in ${delay}ms...`);
+            logger.info(TAG, `Reconnecting in ${delay}ms (attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})...`);
             setTimeout(() => this.connect(), delay);
         } else {
-            console.error('[VestWS] Max reconnection attempts reached.');
+            logger.error(TAG, 'Max reconnection attempts reached');
         }
     }
 

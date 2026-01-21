@@ -73,7 +73,8 @@ export function useMarketData() {
         pairs: query.data || [],
         isLoading: query.isLoading && !wsConnected, // Only loading if BOTH are not ready
         isConnected: wsConnected || !query.error,
-        error: wsError || query.error?.message || null,
+        // Only show error if BOTH WebSocket and REST polling fail
+        error: (!wsConnected && query.isError) ? (wsError || query.error?.message) : null,
         lastUpdate: query.dataUpdatedAt ? new Date(query.dataUpdatedAt) : null,
         refresh: query.refetch,
         hardRefresh: hardRefresh,

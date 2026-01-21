@@ -6,6 +6,9 @@
 const axios = require('axios');
 const { API_ENDPOINTS, isCrypto } = require('../config/exchanges');
 const { REQUEST_TIMEOUT } = require('../config');
+const { logger } = require('../utils/logger');
+
+const TAG = 'Lighter';
 
 /**
  * Fetch all perp markets from Lighter
@@ -42,10 +45,10 @@ async function fetchLighterMarkets() {
             }
         });
 
-        console.log(`[Lighter] Returning ${results.length} pairs with real bid/ask`);
+        logger.debug(TAG, `Returning ${results.length} pairs with real bid/ask`);
         return results;
     } catch (error) {
-        console.error('[Lighter] Error:', error.message);
+        logger.error(TAG, 'Error fetching markets', error);
         return [];
     }
 }

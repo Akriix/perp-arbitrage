@@ -6,6 +6,9 @@
 const { db } = require('./connection');
 const { DB_SAVE_INTERVAL } = require('../config');
 const { getPriceCache } = require('../services/aggregator.service');
+const { logger } = require('../utils/logger');
+
+const TAG = 'DB';
 
 /**
  * Save top pairs to database
@@ -47,7 +50,7 @@ function saveTopPairsToDb() {
  */
 function startDbScheduler() {
     setInterval(saveTopPairsToDb, DB_SAVE_INTERVAL);
-    console.log(`[DB] Persistence scheduler started (interval: ${DB_SAVE_INTERVAL}ms)`);
+    logger.info(TAG, `Persistence scheduler started (interval: ${DB_SAVE_INTERVAL}ms)`);
 }
 
 module.exports = { saveTopPairsToDb, startDbScheduler };

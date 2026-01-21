@@ -4,6 +4,9 @@
  */
 
 const { getPriceCache, updateMarketData } = require('../services/aggregator.service');
+const { logger } = require('../utils/logger');
+
+const TAG = 'API';
 
 /**
  * GET /api/scans
@@ -20,12 +23,12 @@ function getScans(req, res) {
  */
 async function refreshScans(req, res) {
     try {
-        console.log('[API] Hard refresh requested');
+        logger.info(TAG, 'Hard refresh requested');
         const cache = await updateMarketData();
         const pairs = Object.values(cache);
         res.json({ pairs });
     } catch (err) {
-        console.error('[API] Refresh failed:', err);
+        logger.error(TAG, 'Refresh failed', err);
         res.status(500).json({ error: 'Failed to refresh market data' });
     }
 }

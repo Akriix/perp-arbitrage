@@ -13,7 +13,7 @@ const EXIT_ALARM_URL = "https://assets.mixkit.co/active_storage/sfx/951/951-prev
  * @param {Function} updatePosition - Function to update a position
  * @param {boolean} soundEnabled - Whether sound is enabled
  */
-export function useAppAlarms(dynamicPairs, pairThresholds, minSpread, positions, updatePosition, soundEnabled) {
+export function useAppAlarms(dynamicPairs, pairThresholds, minSpread, positions, updatePosition, soundEnabled, disabledAlarms = []) {
     const [activeAlarm, setActiveAlarm] = useState(null); // Position exit alarm
     const [activeScannerAlarm, setActiveScannerAlarm] = useState(null); // New opportunity alarm
     const [acknowledgedScannerAlarms, setAcknowledgedScannerAlarms] = useState(new Set());
@@ -33,8 +33,8 @@ export function useAppAlarms(dynamicPairs, pairThresholds, minSpread, positions,
                 const threshold = pairThresholds[pair.symbol] !== undefined ? pairThresholds[pair.symbol] : minSpread;
                 const isCustom = pairThresholds.hasOwnProperty(pair.symbol);
 
-                // Only trigger if custom threshold set and not acknowledged
-                if (isCustom && spread >= threshold && !acknowledgedScannerAlarms.has(pair.symbol)) {
+                // Only trigger if custom threshold set, not acknowledged, and not disabled
+                if (isCustom && spread >= threshold && !acknowledgedScannerAlarms.has(pair.symbol) && !disabledAlarms.includes(pair.symbol)) {
                     setActiveScannerAlarm(pair);
                     break;
                 }

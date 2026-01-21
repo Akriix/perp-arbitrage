@@ -3,7 +3,9 @@ node_modules/
 
 # Database
 *.sqlite
+*.db
 database.sqlite
+market_data.db
 
 # Environment
 .env

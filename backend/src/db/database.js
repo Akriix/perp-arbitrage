@@ -1,14 +1,17 @@
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
+const { logger } = require('../utils/logger');
+
+const TAG = 'Database';
 
 // Database file path (in the root of backend)
 const dbPath = path.resolve(__dirname, '../../market_data.db');
 
 const db = new sqlite3.Database(dbPath, (err) => {
     if (err) {
-        console.error('[Database] Connection error:', err.message);
+        logger.error(TAG, 'Connection error', err);
     } else {
-        console.log('[Database] Connected to SQLite database.');
+        logger.info(TAG, 'Connected to SQLite database');
     }
 });
 
@@ -27,7 +30,7 @@ function init() {
             timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
         )
     `, (err) => {
-        if (err) console.error('[Database] Table creation error:', err.message);
+        if (err) logger.error(TAG, 'Table creation error', err);
     });
 
     db.run(`CREATE INDEX IF NOT EXISTS idx_history_symbol_time ON spread_history(symbol, timestamp)`);
@@ -46,7 +49,7 @@ function saveSpread({ symbol, spread, bestBid, bestAsk, bestBidEx, bestAskEx }) 
     `);
 
     stmt.run(symbol, spread, bestBid, bestAsk, bestBidEx || 'UNKNOWN', bestAskEx || 'UNKNOWN', (err) => {
-        if (err) console.error('[Database] Insert error:', err.message);
+        if (err) logger.error(TAG, 'Insert error', err);
     });
 
     stmt.finalize();
@@ -85,7 +88,7 @@ function getSpreadHistory(symbol, period = '24h') {
 
         db.all(sql, [symbol, timeModifier], (err, rows) => {
             if (err) {
-                console.error('[Database] Query error:', err.message);
+                logger.error(TAG, 'Query error', err);
                 reject(err);
             } else {
                 resolve(rows);

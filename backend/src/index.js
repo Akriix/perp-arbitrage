@@ -11,6 +11,9 @@ const routes = require('./routes');
 const { PORT } = require('./config');
 const { startScheduler, setWebSocketBroadcaster } = require('./services/aggregator.service');
 const { startDbScheduler } = require('./db/metrics.repository');
+const { logger } = require('./utils/logger');
+
+const TAG = 'Server';
 
 // Initialize Express
 const app = express();
@@ -21,16 +24,16 @@ const wss = new WebSocket.Server({ server });
 let wsClients = [];
 
 wss.on('connection', (ws) => {
-    console.log('[WebSocket] Client connected');
+    logger.info(TAG, 'WebSocket client connected');
     wsClients.push(ws);
 
     ws.on('close', () => {
-        console.log('[WebSocket] Client disconnected');
+        logger.debug(TAG, 'WebSocket client disconnected');
         wsClients = wsClients.filter(client => client !== ws);
     });
 
     ws.on('error', (error) => {
-        console.error('[WebSocket] Error:', error.message);
+        logger.error(TAG, 'WebSocket error', error);
     });
 });
 
@@ -38,7 +41,7 @@ wss.on('connection', (ws) => {
 function broadcastPriceUpdate(priceCache) {
     if (wsClients.length === 0) return;
 
-    console.log(`[WebSocket] Broadcasting update to ${wsClients.length} clients. Cache size: ${Object.keys(priceCache).length}`);
+    logger.debug(TAG, `Broadcasting update to ${wsClients.length} clients. Cache size: ${Object.keys(priceCache).length}`);
 
     const pairs = Object.values(priceCache).map(pair => ({
         symbol: pair.symbol,
@@ -59,7 +62,7 @@ function broadcastPriceUpdate(priceCache) {
             try {
                 client.send(message);
             } catch (error) {
-                console.error('[WebSocket] Send error:', error.message);
+                logger.error(TAG, 'Send error', error);
             }
         }
     });
@@ -85,8 +88,8 @@ startDbScheduler();
 
 // Start server
 server.listen(PORT, () => {
-    console.log(`Server started on http://localhost:${PORT}`);
-    console.log(`WebSocket server ready on ws://localhost:${PORT}`);
+    logger.info(TAG, `Server started on http://localhost:${PORT}`);
+    logger.info(TAG, `WebSocket server ready on ws://localhost:${PORT}`);
 });
 
 module.exports = app;

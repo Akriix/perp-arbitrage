@@ -7,6 +7,9 @@ const axios = require('axios');
 const { API_ENDPOINTS } = require('../config/exchanges');
 const { ALLOWED_SYMBOLS, COMMON_HEADERS, REQUEST_TIMEOUT, CONCURRENCY } = require('../config');
 const { sleep } = require('../utils/sleep');
+const { logger } = require('../utils/logger');
+
+const TAG = 'Vest';
 
 /**
  * Fetch orderbook depth for a single symbol
@@ -53,7 +56,7 @@ async function fetchVestMarkets() {
             }
         });
 
-        console.log(`[Vest] Queued ${symbolsToFetch.length} symbols for depth fetch`);
+        logger.debug(TAG, `Queued ${symbolsToFetch.length} symbols for depth fetch`);
 
         // 2. Fetch depth for each symbol in batches
         for (let i = 0; i < symbolsToFetch.length; i += CONCURRENCY) {
@@ -73,10 +76,10 @@ async function fetchVestMarkets() {
             await sleep(100); // Rate limiting
         }
     } catch (error) {
-        console.error('[Vest] Error:', error.message);
+        logger.error(TAG, 'Error fetching markets', error);
     }
 
-    console.log(`[Vest] Returning ${results.length} pairs:`, results.map(r => r.symbol).join(', '));
+    logger.debug(TAG, `Returning ${results.length} pairs: ${results.map(r => r.symbol).join(', ')}`);
     return results;
 }
 

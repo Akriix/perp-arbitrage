@@ -1,4 +1,7 @@
 const { getSpreadHistory } = require('../db/database');
+const { logger } = require('../utils/logger');
+
+const TAG = 'History';
 
 async function getSpreadHistoryController(req, res) {
     const { pair, period = '24h' } = req.query;
@@ -8,7 +11,7 @@ async function getSpreadHistoryController(req, res) {
     }
 
     try {
-        console.log(`[History] Fetching history for ${pair} (${period})`);
+        logger.debug(TAG, `Fetching history for ${pair} (${period})`);
         const rows = await getSpreadHistory(pair, period);
 
         // --- ADAPTIVE GRANULARITY CONFIG ---
@@ -95,7 +98,7 @@ async function getSpreadHistoryController(req, res) {
         });
 
     } catch (error) {
-        console.error('[History] Error fetching history:', error);
+        logger.error(TAG, 'Error fetching history', error);
         res.status(500).json({ error: 'Failed to fetch history' });
     }
 }

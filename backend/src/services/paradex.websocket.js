@@ -6,6 +6,9 @@
 const WebSocket = require('ws');
 const EventEmitter = require('events');
 const { ALLOWED_SYMBOLS } = require('../config');
+const { logger } = require('../utils/logger');
+
+const TAG = 'ParadexWS';
 
 class ParadexWebSocketService extends EventEmitter {
     constructor() {
@@ -22,12 +25,12 @@ class ParadexWebSocketService extends EventEmitter {
      * Connect to Paradex WebSocket
      */
     connect() {
-        console.log('[ParadexWS] Connecting to Paradex WebSocket...');
+        logger.info(TAG, 'Connecting to Paradex WebSocket...');
 
         this.ws = new WebSocket('wss://ws.api.prod.paradex.trade/v1');
 
         this.ws.on('open', () => {
-            console.log('[ParadexWS] Connected successfully');
+            logger.info(TAG, 'Connected successfully');
             this.isConnected = true;
             this.reconnectAttempts = 0;
             this.subscribeToMarkets();
@@ -38,16 +41,16 @@ class ParadexWebSocketService extends EventEmitter {
                 const message = JSON.parse(data.toString());
                 this.handleMessage(message);
             } catch (error) {
-                console.error('[ParadexWS] Error parsing message:', error);
+                logger.error(TAG, 'Error parsing message', error);
             }
         });
 
         this.ws.on('error', (error) => {
-            console.error('[ParadexWS] WebSocket error:', error.message);
+            logger.error(TAG, 'WebSocket error', error);
         });
 
         this.ws.on('close', () => {
-            console.log('[ParadexWS] Connection closed');
+            logger.info(TAG, 'Connection closed');
             this.isConnected = false;
             this.attemptReconnect();
         });
@@ -71,7 +74,7 @@ class ParadexWebSocketService extends EventEmitter {
             }
         };
 
-        console.log('[ParadexWS] Subscribing to markets_summary channel...');
+        logger.debug(TAG, 'Subscribing to markets_summary channel...');
         this.ws.send(JSON.stringify(subscribeMessage));
     }
 
@@ -81,7 +84,7 @@ class ParadexWebSocketService extends EventEmitter {
     handleMessage(message) {
         // Handle subscription confirmation
         if (message.result && message.result.channel === 'markets_summary') {
-            console.log('[ParadexWS] Successfully subscribed to markets_summary');
+            logger.info(TAG, 'Successfully subscribed to markets_summary');
             return;
         }
 
@@ -120,18 +123,20 @@ class ParadexWebSocketService extends EventEmitter {
     }
 
     /**
-     * Attempt to reconnect
+     * Attempt to reconnect with exponential backoff
      */
     attemptReconnect() {
         if (this.reconnectAttempts < this.maxReconnectAttempts) {
             this.reconnectAttempts++;
-            console.log(`[ParadexWS] Reconnecting... Attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts}`);
+            // Exponential backoff: 3s, 6s, 12s, 24s, 48s (capped at 30s)
+            const delay = Math.min(this.reconnectDelay * Math.pow(2, this.reconnectAttempts - 1), 30000);
+            logger.info(TAG, `Reconnecting in ${delay}ms (attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})...`);
 
             setTimeout(() => {
                 this.connect();
-            }, this.reconnectDelay);
+            }, delay);
         } else {
-            console.error('[ParadexWS] Max reconnection attempts reached');
+            logger.error(TAG, 'Max reconnection attempts reached');
             this.emit('error', new Error('Max reconnection attempts reached'));
         }
     }

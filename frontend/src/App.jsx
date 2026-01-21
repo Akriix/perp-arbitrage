@@ -8,6 +8,7 @@ import PositionsTab from './components/positions/PositionsTab';
 import AddPositionModal from './components/positions/AddPositionModal';
 import ExitAlarmModal from './components/positions/ExitAlarmModal';
 import ScannerAlarmModal from './components/dashboard/ScannerAlarmModal';
+import ActiveAlarmsModal from './components/dashboard/ActiveAlarmsModal';
 import TrackRecordTab from './components/track/TrackRecordTab';
 import useMarketData from './hooks/useMarketData';
 import { useAlerts } from './hooks/useAlerts';
@@ -19,11 +20,13 @@ function App() {
   const [selectedPair, setSelectedPair] = useState(null);
   const [settingsOpenFor, setSettingsOpenFor] = useState(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isActiveAlarmsModalOpen, setIsActiveAlarmsModalOpen] = useState(false);
 
   // --- State with Persistence (Refactored to useLocalStorage) ---
   const [isFocusMode, setIsFocusMode] = useLocalStorage('is_focus_mode', false);
   const [enabledExchanges, setEnabledExchanges] = useLocalStorage('enabled_exchanges', { vest: true, lighter: true, paradex: true });
   const [pairThresholds, setPairThresholds] = useLocalStorage('pair_thresholds', {});
+  const [disabledAlarms, setDisabledAlarms] = useLocalStorage('disabled_alarms', []);
   const [trades, setTrades] = useLocalStorage('track_trades', []);
   const [initialInvestment, setInitialInvestment] = useLocalStorage('initial_investment', 1000);
   const [positions, setPositions] = useLocalStorage('active_positions', []);
@@ -93,13 +96,23 @@ function App() {
     setSettingsOpenFor(null);
   };
 
+  const toggleDisabledAlarm = (symbol) => {
+    setDisabledAlarms(prev => {
+      if (prev.includes(symbol)) {
+        return prev.filter(s => s !== symbol);
+      } else {
+        return [...prev, symbol];
+      }
+    });
+  };
+
   // --- Alarms Logic (Refactored to Custom Hook) ---
   const {
     activeAlarm,
     activeScannerAlarm,
     stopAlarm,
     stopScannerAlarm
-  } = useAppAlarms(dynamicPairs, pairThresholds, minSpread, positions, updatePosition, soundEnabled);
+  } = useAppAlarms(dynamicPairs, pairThresholds, minSpread, positions, updatePosition, soundEnabled, disabledAlarms);
 
 
   // --- Render ---
@@ -207,6 +220,7 @@ function App() {
         isFocusMode={isFocusMode}
         setIsFocusMode={setIsFocusMode}
         monitoredCount={monitoredCount}
+        onOpenAlarms={() => setIsActiveAlarmsModalOpen(true)}
       />
 
       <div className="max-w-[1400px] mx-auto px-6 pb-20">
@@ -246,6 +260,14 @@ function App() {
       <ScannerAlarmModal
         pair={activeScannerAlarm}
         onConfirm={stopScannerAlarm}
+      />
+      <ActiveAlarmsModal
+        isOpen={isActiveAlarmsModalOpen}
+        onClose={() => setIsActiveAlarmsModalOpen(false)}
+        pairThresholds={pairThresholds}
+        disabledAlarms={disabledAlarms}
+        toggleAlarm={toggleDisabledAlarm}
+        removeAlarm={(symbol) => updateThreshold(symbol, null)}
       />
     </div>
   );

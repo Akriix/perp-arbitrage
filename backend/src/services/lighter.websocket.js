@@ -7,9 +7,10 @@ const WebSocket = require('ws');
 const EventEmitter = require('events');
 const axios = require('axios');
 const { API_ENDPOINTS, isCrypto } = require('../config/exchanges');
-// Note: We'll filter symbols dynamically based on what's active in aggregator
+const { logger } = require('../utils/logger');
 
 const WS_URL = 'wss://mainnet.zklighter.elliot.ai/stream';
+const TAG = 'LighterWS';
 
 class LighterWebSocketService extends EventEmitter {
     constructor() {
@@ -29,7 +30,7 @@ class LighterWebSocketService extends EventEmitter {
      */
     async fetchMarketIndices() {
         try {
-            console.log('[LighterWS] Fetching market indices...');
+            logger.info(TAG, 'Fetching market indices...');
             const res = await axios.get(API_ENDPOINTS.LIGHTER, { timeout: 10000 });
             const markets = res.data.order_book_details || [];
 
@@ -44,13 +45,13 @@ class LighterWebSocketService extends EventEmitter {
                 }
             });
 
-            console.log(`[LighterWS] Mapped ${count} market IDs`);
+            logger.info(TAG, `Mapped ${count} market IDs`);
             if (this.marketIndexMap['RESOLV']) {
-                console.log(`[LighterWS] RESOLV ID: ${this.marketIndexMap['RESOLV']}`);
+                logger.debug(TAG, `RESOLV ID: ${this.marketIndexMap['RESOLV']}`);
             }
             return count > 0;
         } catch (error) {
-            console.error('[LighterWS] Failed to fetch market indices:', error.message);
+            logger.error(TAG, 'Failed to fetch market indices', error);
             return false;
         }
     }
@@ -63,18 +64,18 @@ class LighterWebSocketService extends EventEmitter {
         if (Object.keys(this.marketIndexMap).length === 0) {
             const success = await this.fetchMarketIndices();
             if (!success) {
-                console.error('[LighterWS] Cannot connect without market indices');
+                logger.error(TAG, 'Cannot connect without market indices');
                 setTimeout(() => this.connect(), this.reconnectDelay);
                 return;
             }
         }
 
         try {
-            console.log(`[LighterWS] Connecting to ${WS_URL}...`);
+            logger.info(TAG, `Connecting to ${WS_URL}...`);
             this.ws = new WebSocket(WS_URL);
 
             this.ws.on('open', () => {
-                console.log('[LighterWS] Connected successfully');
+                logger.info(TAG, 'Connected successfully');
                 this.isConnected = true;
                 this.reconnectAttempts = 0;
                 this.startPing();
@@ -86,25 +87,25 @@ class LighterWebSocketService extends EventEmitter {
             });
 
             this.ws.on('error', (error) => {
-                console.error('[LighterWS] WebSocket error:', error.message);
+                logger.error(TAG, 'WebSocket error', error);
             });
 
             this.ws.on('close', () => {
-                console.log('[LighterWS] Connection closed');
+                logger.info(TAG, 'Connection closed');
                 this.isConnected = false;
                 this.stopPing();
                 this.scheduleReconnect();
             });
 
         } catch (error) {
-            console.error('[LighterWS] Connection error:', error.message);
+            logger.error(TAG, 'Connection error', error);
             this.scheduleReconnect();
         }
     }
 
     subscribeToAllMarkets() {
         const symbols = Object.keys(this.marketIndexMap);
-        console.log(`[LighterWS] Subscribing to ${symbols.length} markets...`);
+        logger.info(TAG, `Subscribing to ${symbols.length} markets...`);
 
         let subCount = 0;
         symbols.forEach(symbol => {
@@ -112,7 +113,7 @@ class LighterWebSocketService extends EventEmitter {
             this.subscribeToMarket(marketId);
             subCount++;
         });
-        console.log(`[LighterWS] Sent ${subCount} subscription requests`);
+        logger.debug(TAG, `Sent ${subCount} subscription requests`);
     }
 
     subscribeToMarket(marketId) {
@@ -221,11 +222,12 @@ class LighterWebSocketService extends EventEmitter {
     scheduleReconnect() {
         if (this.reconnectAttempts < this.maxReconnectAttempts) {
             this.reconnectAttempts++;
-            const delay = this.reconnectDelay * Math.min(this.reconnectAttempts, 5);
-            console.log(`[LighterWS] Reconnecting in ${delay}ms...`);
+            // Exponential backoff: 3s, 6s, 12s, 24s... capped at 30s
+            const delay = Math.min(this.reconnectDelay * Math.pow(2, this.reconnectAttempts - 1), 30000);
+            logger.info(TAG, `Reconnecting in ${delay}ms (attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})...`);
             setTimeout(() => this.connect(), delay);
         } else {
-            console.error('[LighterWS] Max reconnection attempts reached. Will retry in 1 minute.');
+            logger.warn(TAG, 'Max reconnection attempts reached. Will retry in 1 minute.');
             setTimeout(() => {
                 this.reconnectAttempts = 0;
                 this.connect();
