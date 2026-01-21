@@ -25,8 +25,9 @@ class VestHybridService extends HybridExchangeService {
     private ws: WebSocket | null = null;
     private pingInterval: NodeJS.Timeout | null = null;
     private reconnectAttempts = 0;
-    private readonly maxReconnectAttempts = 20;
-    private readonly reconnectDelay = 3000;
+    private readonly maxReconnectAttempts = 5; // Reduced - we'll use REST primarily
+    private readonly reconnectDelay = 10000;   // Slower reconnect, REST is primary
+    private wsDisabled: boolean = false;        // Flag to stop WS attempts temporarily
 
     constructor() {
         const config: HybridConfig = {
@@ -36,6 +37,23 @@ class VestHybridService extends HybridExchangeService {
             staleThreshold: STALE_THRESHOLD
         };
         super(config);
+    }
+
+    // Override start to do initial REST fetch immediately
+    async start(): Promise<void> {
+        logger.info(this.name, 'Starting hybrid service (REST primary due to WS issues)');
+
+        // Do initial REST fetch immediately - don't wait for WS
+        await this.doFallbackFetch();
+
+        // Start REST polling immediately
+        this.startFallback();
+
+        // Try WS in background (non-blocking)
+        this.connectWebSocket().catch(() => { });
+
+        // Start watchdog
+        this.startWatchdog();
     }
 
     // ==================== WebSocket Implementation ====================
@@ -62,13 +80,24 @@ class VestHybridService extends HybridExchangeService {
 
                 this.ws.on('error', (error: Error) => {
                     logger.error(TAG, `WebSocket error: ${error.message}`);
+                    // On error (like 530), make sure REST fallback is active
+                    if (!this.fallbackActive) {
+                        logger.warn(TAG, 'WS error detected, ensuring REST fallback is active');
+                        this.startFallback();
+                    }
                 });
 
                 this.ws.on('close', () => {
                     logger.info(TAG, 'WebSocket closed');
                     this.isWsConnected = false;
                     this.stopPing();
-                    this.scheduleReconnect();
+                    // Don't spam reconnects if we keep getting errors
+                    if (this.reconnectAttempts < this.maxReconnectAttempts && !this.wsDisabled) {
+                        this.scheduleReconnect();
+                    } else {
+                        logger.warn(TAG, 'WS disabled, using REST only');
+                        this.wsDisabled = true;
+                    }
                 });
 
             } catch (error: any) {

@@ -62,7 +62,10 @@ module.exports = {
             item.bestAskEx = minAskEx || undefined;
 
             // Calculate spread percentage
-            if (item.bestBid > 0 && item.bestAsk > 0) {
+            // Only calculate if we have prices from DIFFERENT exchanges (valid arbitrage)
+            if (item.bestBid > 0 && item.bestAsk > 0 &&
+                item.bestBidEx && item.bestAskEx &&
+                item.bestBidEx !== item.bestAskEx) {
                 item.realSpread = ((item.bestBid - item.bestAsk) / item.bestAsk) * 100;
 
                 // Profit calculation for $1000 trade (0.1% fee per side)
@@ -71,7 +74,8 @@ module.exports = {
                 const fees = (1000 * 0.001) + (grossSale * 0.001);
                 item.potentialProfit = grossSale - fees - 1000;
             } else {
-                item.realSpread = -999;
+                // Same exchange or missing data - no valid arbitrage
+                item.realSpread = 0;
                 item.potentialProfit = 0;
             }
         });

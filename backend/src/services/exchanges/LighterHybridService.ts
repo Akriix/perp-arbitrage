@@ -24,8 +24,9 @@ class LighterHybridService extends HybridExchangeService {
     private ws: WebSocket | null = null;
     private pingInterval: NodeJS.Timeout | null = null;
     private reconnectAttempts = 0;
-    private readonly maxReconnectAttempts = 20;
-    private readonly reconnectDelay = 3000;
+    private readonly maxReconnectAttempts = 5;  // Reduced - REST is primary
+    private readonly reconnectDelay = 10000;    // Slower reconnect
+    private wsDisabled: boolean = false;
 
     // Market ID mapping (symbol -> market_id)
     private marketIndexMap: Record<string, number> = {};
@@ -39,6 +40,26 @@ class LighterHybridService extends HybridExchangeService {
             staleThreshold: STALE_THRESHOLD
         };
         super(config);
+    }
+
+    // Override start to do initial REST fetch immediately
+    async start(): Promise<void> {
+        logger.info(this.name, 'Starting hybrid service (REST primary)');
+
+        // Fetch market indices first
+        await this.fetchMarketIndices();
+
+        // Do initial REST fetch immediately
+        await this.doFallbackFetch();
+
+        // Start REST polling immediately
+        this.startFallback();
+
+        // Try WS in background (non-blocking)
+        this.connectWebSocket().catch(() => { });
+
+        // Start watchdog
+        this.startWatchdog();
     }
 
     // ==================== WebSocket Implementation ====================
@@ -70,13 +91,22 @@ class LighterHybridService extends HybridExchangeService {
 
                 this.ws.on('error', (error: Error) => {
                     logger.error(TAG, `WebSocket error: ${error.message}`);
+                    if (!this.fallbackActive) {
+                        logger.warn(TAG, 'WS error, ensuring REST fallback active');
+                        this.startFallback();
+                    }
                 });
 
                 this.ws.on('close', () => {
                     logger.info(TAG, 'WebSocket closed');
                     this.isWsConnected = false;
                     this.stopPing();
-                    this.scheduleReconnect();
+                    if (this.reconnectAttempts < this.maxReconnectAttempts && !this.wsDisabled) {
+                        this.scheduleReconnect();
+                    } else {
+                        logger.warn(TAG, 'WS disabled, using REST only');
+                        this.wsDisabled = true;
+                    }
                 });
 
             } catch (error: any) {

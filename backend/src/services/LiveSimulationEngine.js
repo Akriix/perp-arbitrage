@@ -43,6 +43,10 @@ let stats = {
 // Spread tracking for duration detection
 const spreadTracker = new Map();
 
+// Throttle per symbol to prevent spam (log each opportunity only once per 5s)
+const lastSimulation = new Map();
+const SIMULATION_THROTTLE_MS = 5000;
+
 /**
  * Calculate net profit after all deductions
  */
@@ -175,6 +179,14 @@ function processSpread(symbol, priceData) {
     const spreadKey = `${symbol}:${bestBuy.exchange}:${bestSell.exchange}`;
     const { isCapturable, durationMs } = checkCapturability(symbol, spreadKey);
 
+    // Throttle: don't log same opportunity more than once every 5 seconds
+    const now = Date.now();
+    const lastSim = lastSimulation.get(spreadKey);
+    if (lastSim && (now - lastSim) < SIMULATION_THROTTLE_MS) {
+        return; // Skip duplicate simulation
+    }
+    lastSimulation.set(spreadKey, now);
+
     // Calculate profit
     const profitCalc = calculateNetProfit(
         SIMULATION.POSITION_SIZE_USD,
@@ -241,7 +253,6 @@ function processSpread(symbol, priceData) {
     });
 
     // Print dashboard periodically
-    const now = Date.now();
     if (now - stats.lastDashboardUpdate >= SIMULATION.DASHBOARD_INTERVAL) {
         printDashboard();
         stats.lastDashboardUpdate = now;
