@@ -69,7 +69,7 @@ class LighterHybridService extends HybridExchangeService {
                 });
 
                 this.ws.on('error', (error: Error) => {
-                    logger.error(TAG, 'WebSocket error', error);
+                    logger.error(TAG, `WebSocket error: ${error.message}`);
                 });
 
                 this.ws.on('close', () => {

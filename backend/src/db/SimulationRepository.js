@@ -23,6 +23,7 @@ const db = new sqlite3.Database(dbPath, (err) => {
 });
 
 // Initialize tables
+let isReady = false;
 initTables();
 
 function initTables() {
@@ -49,7 +50,16 @@ function initTables() {
             duration_ms INTEGER
         )
     `, (err) => {
-        if (err) logger.error(TAG, 'Table creation error', err);
+        if (err) {
+            logger.error(TAG, 'Table creation error', err);
+        } else {
+            // Create indexes and mark as ready
+            db.run(`CREATE INDEX IF NOT EXISTS idx_sim_timestamp ON simulated_trades(timestamp)`);
+            db.run(`CREATE INDEX IF NOT EXISTS idx_sim_symbol ON simulated_trades(symbol)`, () => {
+                isReady = true;
+                logger.info(TAG, 'Tables initialized, ready for inserts');
+            });
+        }
     });
 
     // Daily stats table for aggregated reporting
@@ -69,15 +79,16 @@ function initTables() {
     `, (err) => {
         if (err) logger.error(TAG, 'Stats table creation error', err);
     });
-
-    db.run(`CREATE INDEX IF NOT EXISTS idx_sim_timestamp ON simulated_trades(timestamp)`);
-    db.run(`CREATE INDEX IF NOT EXISTS idx_sim_symbol ON simulated_trades(symbol)`);
 }
 
 /**
  * Save a simulated trade
  */
 function saveSimulatedTrade(trade) {
+    if (!isReady) {
+        // Tables not ready yet, skip this trade
+        return;
+    }
     const stmt = db.prepare(`
         INSERT INTO simulated_trades (
             symbol, buy_exchange, sell_exchange, buy_price, sell_price,
