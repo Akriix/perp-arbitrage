@@ -1,4 +1,4 @@
-import { Bell, BellOff, X } from 'lucide-react';
+import { Bell, BellOff, X, TrendingUp } from 'lucide-react';
 import { motion } from 'framer-motion';
 import CryptoIcon from './CryptoIcon';
 import ExchangeIcon from './ExchangeIcon';
@@ -21,6 +21,19 @@ export default function OpportunityCard({
     const threshold = getAlertThreshold(row.symbol);
     const isAlerting = hasCustomThreshold && spread >= threshold;
     const isSettingsOpen = settingsOpenFor === row.symbol;
+
+    // --- Estimated Profit Logic ---
+    const margin = parseFloat(localStorage.getItem('calc_margin_per_side')) || 1000;
+
+    const PAIR_LEVERAGE = {
+        'BTC': 50, 'ETH': 50, 'SOL': 20, 'PAXG': 10,
+        'AAVE': 10, 'SUI': 10, 'XRP': 10, 'GRASS': 5,
+        'MYX': 3, 'LIT': 5, 'RESOLV': 3, 'BERA': 5, 'KAITO': 5
+    };
+
+    const leverage = PAIR_LEVERAGE[row.symbol] || 10;
+    const estProfit = (margin * leverage) * (spread / 100);
+    const isNegligible = estProfit < 1;
 
     return (
         <motion.div
@@ -55,8 +68,8 @@ export default function OpportunityCard({
                     setSettingsOpenFor(isSettingsOpen ? null : row.symbol);
                 }}
                 className={`absolute top-3 right-3 z-10 p-2 rounded-xl transition-all duration-300 ${isAlerting || hasCustomThreshold
-                        ? 'bg-yellow-500/10 text-yellow-500 hover:bg-yellow-500/20 shadow-lg shadow-yellow-500/10'
-                        : 'text-gray-600 hover:text-gray-300 hover:bg-white/5'
+                    ? 'bg-yellow-500/10 text-yellow-500 hover:bg-yellow-500/20 shadow-lg shadow-yellow-500/10'
+                    : 'text-gray-600 hover:text-gray-300 hover:bg-white/5'
                     }`}
             >
                 <Bell className={`w-4 h-4 ${hasCustomThreshold ? 'fill-current' : ''}`} />
@@ -135,17 +148,25 @@ export default function OpportunityCard({
                 </div>
             </div>
 
-            {/* Spread Badge */}
+            {/* Spread Badge + Est. Profit */}
             <div className={`
-                border rounded-xl text-center py-2 px-4 my-4
+                border rounded-xl text-center py-2 px-4 my-4 flex flex-col items-center gap-1
                 ${isAlerting
                     ? 'bg-yellow-500/10 border-yellow-500/30'
                     : 'bg-blue-500/10 border-blue-500/30 group-hover:bg-blue-500/15'
                 }
             `}>
-                <span className={`font-bold block text-lg ${isAlerting ? 'text-yellow-400' : 'text-blue-400'}`}>
+                <span className={`font-bold text-lg ${isAlerting ? 'text-yellow-400' : 'text-blue-400'}`}>
                     Spread {spread.toFixed(2)}%
                 </span>
+
+                {/* Est. Profit Badge */}
+                {estProfit > 0 && (
+                    <span className={`text-xs font-black tracking-wide flex items-center gap-1 ${isNegligible ? 'text-gray-500' : 'text-emerald-400'}`}>
+                        {!isNegligible && <TrendingUp className="w-3 h-3" />}
+                        Est. +${estProfit.toFixed(2)}
+                    </span>
+                )}
             </div>
 
             {/* Strategy Details */}
