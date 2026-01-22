@@ -1,8 +1,23 @@
-import { ArrowUpRight, Flame, TrendingUp, AlertTriangle } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { ArrowUpRight, Flame, TrendingUp, AlertTriangle, Pencil } from 'lucide-react';
 
 export default function ProfitCalculator({ spread, pair, exchangeAndPrice }) {
-    // Configuration
-    const MARGIN_PER_SIDE = 1000;
+    // Configuration State with Persistence
+    const [marginPerSide, setMarginPerSide] = useState(() => {
+        const saved = localStorage.getItem('calc_margin_per_side');
+        return saved ? parseFloat(saved) : 1000;
+    });
+
+    const [totalCapital, setTotalCapital] = useState(() => {
+        const saved = localStorage.getItem('calc_total_capital');
+        return saved ? parseFloat(saved) : 2000;
+    });
+
+    // Save preferences on change
+    useEffect(() => {
+        localStorage.setItem('calc_margin_per_side', marginPerSide);
+        localStorage.setItem('calc_total_capital', totalCapital);
+    }, [marginPerSide, totalCapital]);
 
     const PAIR_LEVERAGE = {
         'BTC': 50,
@@ -20,16 +35,17 @@ export default function ProfitCalculator({ spread, pair, exchangeAndPrice }) {
     };
 
     const leverage = getLeverage(pair);
-    const positionSize = MARGIN_PER_SIDE * leverage;
+    const positionSize = marginPerSide * leverage;
 
     // New Simplified Calculation
     // Profit = Margin * Leverage * (Spread / 100)
     // Which is equivalent to: Position Size * (Spread / 100)
-    // Fees are ignored as requested
 
     const grossProfit = positionSize * (spread / 100);
-    const netProfit = grossProfit; // Fees removed
-    const roi = (netProfit / (MARGIN_PER_SIDE * 2)) * 100;
+    const netProfit = grossProfit; // Fees ignored
+
+    // ROI based on Total Capital as requested
+    const roi = totalCapital > 0 ? (netProfit / totalCapital) * 100 : 0;
     const isProfitable = netProfit > 0;
 
     return (
@@ -44,14 +60,36 @@ export default function ProfitCalculator({ spread, pair, exchangeAndPrice }) {
             <div className="space-y-4 flex-1">
 
                 {/* Config Section */}
-                <div className="bg-gray-800/50 rounded-lg p-3 text-sm border border-gray-700">
-                    <div className="flex justify-between text-gray-400 mb-1">
-                        <span>Margin per side</span>
-                        <span className="text-white font-mono">${MARGIN_PER_SIDE.toLocaleString()}</span>
+                <div className="bg-gray-800/50 rounded-lg p-3 text-sm border border-gray-700 space-y-3">
+                    <div className="flex justify-between items-center text-gray-400">
+                        <span className="flex items-center gap-1.5 group cursor-help">
+                            Margin per side
+                            <Pencil className="w-3 h-3 opacity-30 group-hover:opacity-100 transition-opacity" />
+                        </span>
+                        <div className="flex items-center bg-gray-900/50 rounded-lg px-2 border border-transparent hover:border-gray-600 focus-within:border-blue-500 transition-colors">
+                            <span className="text-gray-500 mr-1">$</span>
+                            <input
+                                type="number"
+                                value={marginPerSide}
+                                onChange={(e) => setMarginPerSide(parseFloat(e.target.value) || 0)}
+                                className="bg-transparent border-none text-right text-white font-mono w-20 focus:outline-none py-1"
+                            />
+                        </div>
                     </div>
-                    <div className="flex justify-between text-gray-400">
-                        <span>Total Capital</span>
-                        <span className="text-white font-mono">${(MARGIN_PER_SIDE * 2).toLocaleString()}</span>
+                    <div className="flex justify-between items-center text-gray-400">
+                        <span className="flex items-center gap-1.5 group cursor-help">
+                            Total Capital
+                            <Pencil className="w-3 h-3 opacity-30 group-hover:opacity-100 transition-opacity" />
+                        </span>
+                        <div className="flex items-center bg-gray-900/50 rounded-lg px-2 border border-transparent hover:border-gray-600 focus-within:border-blue-500 transition-colors">
+                            <span className="text-gray-500 mr-1">$</span>
+                            <input
+                                type="number"
+                                value={totalCapital}
+                                onChange={(e) => setTotalCapital(parseFloat(e.target.value) || 0)}
+                                className="bg-transparent border-none text-right text-white font-mono w-20 focus:outline-none py-1"
+                            />
+                        </div>
                     </div>
                 </div>
 
