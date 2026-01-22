@@ -198,7 +198,7 @@ function App() {
         isOpen={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
         onAdd={addPosition}
-        symbols={['BTC', 'ETH', 'SOL', 'PAXG', 'RESOLV', 'BERA', 'KAITO']}
+        symbols={['BTC', 'ETH', 'SOL', 'PAXG', 'RESOLV', 'BERA', 'KAITO', 'AAVE', 'SUI', 'XRP', 'GRASS']}
       />
 
       <AnimatePresence>

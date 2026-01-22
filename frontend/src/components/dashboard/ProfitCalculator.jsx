@@ -20,11 +20,16 @@ export default function ProfitCalculator({ spread, pair, exchangeAndPrice }) {
         'BTC': 50,
         'ETH': 50,
         'SOL': 20,
-        'PAXG': 50,
+        'PAXG': 10,
+        'AAVE': 10,
+        'SUI': 10,
+        'XRP': 10,
+        'GRASS': 5,
         'MYX': 3,
         'LIT': 5,
         'RESOLV': 3,
-        'BERA': 5
+        'BERA': 5,
+        'KAITO': 5
     };
 
     const getLeverage = (symbol) => {

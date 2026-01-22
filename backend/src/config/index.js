@@ -36,7 +36,8 @@ module.exports = {
     },
 
     ALLOWED_SYMBOLS: [
-        'BTC', 'ETH', 'SOL', 'PAXG', 'RESOLV', 'BERA', 'KAITO'
+        'BTC', 'ETH', 'SOL', 'PAXG', 'RESOLV', 'BERA', 'KAITO',
+        'AAVE', 'SUI', 'XRP', 'GRASS'
     ]
 };
 

@@ -315,7 +315,7 @@ export default function TrackRecordTab({ trades, initialInvestment, onAddTrade, 
                                             onChange={e => setNewTrade({ ...newTrade, symbol: e.target.value })}
                                             className="w-full bg-[#0f1117] border border-gray-800 rounded-2xl px-5 py-3 text-sm focus:border-blue-500 outline-none appearance-none transition-all hover:border-gray-700"
                                         >
-                                            {['BTC', 'ETH', 'SOL', 'PAXG', 'RESOLV', 'BERA', 'KAITO'].map(s => <option key={s} value={s}>{s}</option>)}
+                                            {['BTC', 'ETH', 'SOL', 'PAXG', 'RESOLV', 'BERA', 'KAITO', 'AAVE', 'SUI', 'XRP', 'GRASS'].map(s => <option key={s} value={s}>{s}</option>)}
                                         </select>
                                         <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500">
                                             <TrendingUp className="w-4 h-4" />
