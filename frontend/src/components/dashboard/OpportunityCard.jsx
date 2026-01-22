@@ -12,9 +12,7 @@ export default function OpportunityCard({
     getAlertThreshold,
     hasCustomThreshold,
     updateThreshold,
-    minSpread,
-    margin,
-    onUpdateMargin
+    minSpread
 }) {
     const spread = row.realSpread || 0;
     const buyEx = row.bestAskEx || 'Unknown';
@@ -24,14 +22,17 @@ export default function OpportunityCard({
     const isAlerting = hasCustomThreshold && spread >= threshold;
     const isSettingsOpen = settingsOpenFor === row.symbol;
 
-    // Leverage Logic (duplicated from App.jsx/ProfitCalculator for display)
+    // Estimated Profit Logic (Static Global Margin)
+    const margin = parseFloat(localStorage.getItem('calc_margin_per_side')) || 1000;
+
+    // Leverage Config (duplicated for display)
     const PAIR_LEVERAGE = {
         'BTC': 50, 'ETH': 50, 'SOL': 20, 'PAXG': 10,
         'AAVE': 10, 'SUI': 10, 'XRP': 10, 'GRASS': 5,
         'MYX': 3, 'LIT': 5, 'RESOLV': 3, 'BERA': 5, 'KAITO': 5
     };
-    const leverage = PAIR_LEVERAGE[row.symbol] || 10;
 
+    const leverage = PAIR_LEVERAGE[row.symbol] || 10;
     const estProfit = (margin * leverage) * (spread / 100);
     const isNegligible = estProfit < 1;
 
@@ -148,7 +149,7 @@ export default function OpportunityCard({
                 </div>
             </div>
 
-            {/* Spread Badge + Est. Profit + Margin Input */}
+            {/* Spread Badge + Est. Profit */}
             <div className={`
                 border rounded-xl text-center py-2 px-4 my-4 flex flex-col items-center gap-1
                 ${isAlerting
@@ -160,28 +161,13 @@ export default function OpportunityCard({
                     Spread {spread.toFixed(2)}%
                 </span>
 
-                {/* Est. Profit Badge */}
+                {/* Est. Profit Badge (Static Margin) */}
                 {estProfit > 0 && (
-                    <span className={`text-xs font-black tracking-wide flex items-center gap-1 mb-1 ${isNegligible ? 'text-gray-500' : 'text-emerald-400'}`}>
+                    <span className={`text-xs font-black tracking-wide flex items-center gap-1 ${isNegligible ? 'text-gray-500' : 'text-emerald-400'}`}>
                         {!isNegligible && <TrendingUp className="w-3 h-3" />}
                         Est. +${estProfit.toFixed(2)}
                     </span>
                 )}
-
-                {/* Margin Input */}
-                <div
-                    className="flex items-center gap-1 bg-black/20 rounded px-2 py-0.5 border border-white/5 hover:border-white/20 transition-colors"
-                    onClick={(e) => e.stopPropagation()}
-                >
-                    <span className="text-[10px] text-gray-500 uppercase font-bold">Margin</span>
-                    <span className="text-[10px] text-gray-500">$</span>
-                    <input
-                        type="number"
-                        value={margin}
-                        onChange={(e) => onUpdateMargin(row.symbol, e.target.value)}
-                        className="w-12 bg-transparent text-xs font-mono text-gray-300 focus:outline-none text-right"
-                    />
-                </div>
             </div>
 
             {/* Strategy Details */}
