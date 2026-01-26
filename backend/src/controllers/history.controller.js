@@ -15,9 +15,10 @@ async function getSpreadHistoryController(req, res) {
         const rows = await getSpreadHistory(pair, period);
 
         // --- ADAPTIVE GRANULARITY CONFIG ---
-        let interval = 5; // default 5 minutes for 24h
-        if (period === '7d') interval = 30;
-        else if (period === '14d' || period === 'all') interval = 60;
+        // --- ADAPTIVE GRANULARITY CONFIG (User Requested) ---
+        let interval = 2; // default: 2 min for 24h (High Precision)
+        if (period === '7d') interval = 15; // 15 min for 7d
+        else if (period === '14d' || period === 'all') interval = 30; // 30 min for 14d
 
         // --- DOWNSAMPLING LOGIC (Bucket Averaging) ---
         function downsampleData(rawData, intervalMinutes) {
@@ -53,9 +54,11 @@ async function getSpreadHistoryController(req, res) {
                 .sort((a, b) => a.timestamp - b.timestamp)
                 .map(bucket => {
                     const avg = arr => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : 0;
+                    const max = arr => arr.length ? Math.max(...arr) : 0;
+
                     return {
                         timestamp: new Date(bucket.timestamp).toISOString(),
-                        spread: parseFloat(avg(bucket.spreads).toFixed(2)),
+                        spread: parseFloat(max(bucket.spreads).toFixed(2)), // MAX Spread rule
                         lighter_price: parseFloat(avg(bucket.best_asks).toFixed(2)),
                         vest_price: parseFloat(avg(bucket.best_bids).toFixed(2))
                     };
