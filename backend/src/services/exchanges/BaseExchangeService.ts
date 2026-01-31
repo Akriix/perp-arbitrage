@@ -36,6 +36,7 @@ export interface IExchangeService {
 }
 
 import { EventEmitter } from 'events';
+import { isCrypto as checkCrypto } from '../../config/exchanges';
 
 /**
  * Abstract base class for exchange services
@@ -62,8 +63,7 @@ export abstract class BaseExchangeService extends EventEmitter implements IExcha
      */
     protected isCrypto(symbol: string): boolean {
         // Delegated to shared config
-        const { isCrypto } = require('../config/exchanges');
-        return isCrypto(symbol);
+        return checkCrypto(symbol);
     }
 
     /**

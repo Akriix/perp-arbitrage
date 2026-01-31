@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import extendedIcon from '../../assets/extended.png';
 
 const EXCHANGE_DOMAINS = {
     vest: 'vestmarkets.com',
@@ -11,6 +12,16 @@ export default function ExchangeIcon({ exchange, className = "w-5 h-5" }) {
 
     const name = exchange?.toLowerCase();
     const domain = EXCHANGE_DOMAINS[name];
+
+    if (name === 'extended') {
+        return (
+            <img
+                src={extendedIcon}
+                alt={exchange}
+                className={`${className} rounded-full bg-gray-800 object-cover`}
+            />
+        );
+    }
 
     if (!domain || error) {
         // Fallback: First letter

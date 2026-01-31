@@ -23,7 +23,7 @@ function App() {
   const [isActiveAlarmsModalOpen, setIsActiveAlarmsModalOpen] = useState(false);
 
   // --- State with Persistence ---
-  const [enabledExchanges, setEnabledExchanges] = useLocalStorage('enabled_exchanges', { vest: true, lighter: true, paradex: true });
+  const [enabledExchanges, setEnabledExchanges] = useLocalStorage('enabled_exchanges', { vest: true, lighter: true, paradex: true, extended: true });
   const [pairThresholds, setPairThresholds] = useLocalStorage('pair_thresholds', {});
   const [disabledAlarms, setDisabledAlarms] = useLocalStorage('disabled_alarms', []);
   const [trades, setTrades] = useLocalStorage('track_trades', []);
@@ -46,7 +46,7 @@ function App() {
     let maxBid = 0, maxBidEx = null;
     let minAsk = Infinity, minAskEx = null;
 
-    ['vest', 'lighter', 'paradex'].forEach(ex => {
+    ['vest', 'lighter', 'paradex', 'extended'].forEach(ex => {
       if (!enabledExchanges[ex]) return;
       const bid = pair[ex]?.bid || 0;
       const ask = pair[ex]?.ask || 0;

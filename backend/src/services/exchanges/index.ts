@@ -13,13 +13,13 @@ export { HybridExchangeService, HybridConfig, TimestampedPrice } from './HybridE
 export { paradexService, ParadexService } from './ParadexService';
 export { vestService, VestService } from './VestService';
 export { lighterService, LighterService } from './LighterService';
-export { vestHybridService, VestHybridService } from './VestHybridService';
-export { lighterHybridService, LighterHybridService } from './LighterHybridService';
+export { extendedService, ExtendedService } from './ExtendedService';
 
 import { IExchangeService } from './BaseExchangeService';
 import { paradexService } from './ParadexService';
-import { vestHybridService } from './VestHybridService';
-import { lighterHybridService } from './LighterHybridService';
+import { vestService } from './VestService';
+import { lighterService } from './LighterService';
+import { extendedService } from './ExtendedService';
 
 /**
  * Registry of all available exchange services (using hybrid where available)
@@ -27,8 +27,9 @@ import { lighterHybridService } from './LighterHybridService';
  */
 export const EXCHANGE_REGISTRY: Record<string, IExchangeService> = {
     PARADEX: paradexService,
-    VEST: vestHybridService,
-    LIGHTER: lighterHybridService
+    VEST: vestService,
+    LIGHTER: lighterService,
+    EXTENDED: extendedService
 };
 
 /**

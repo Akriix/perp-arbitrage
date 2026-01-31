@@ -78,6 +78,7 @@ export default function AddPositionModal({ isOpen, onClose, onAdd, symbols }) {
                                 <option value="VEST">VEST</option>
                                 <option value="LIGHTER">LIGHTER</option>
                                 <option value="PARADEX">PARADEX</option>
+                                <option value="EXTENDED">EXTENDED</option>
                             </select>
                         </div>
                         <div>
@@ -90,6 +91,7 @@ export default function AddPositionModal({ isOpen, onClose, onAdd, symbols }) {
                                 <option value="PARADEX">PARADEX</option>
                                 <option value="VEST">VEST</option>
                                 <option value="LIGHTER">LIGHTER</option>
+                                <option value="EXTENDED">EXTENDED</option>
                             </select>
                         </div>
                     </div>

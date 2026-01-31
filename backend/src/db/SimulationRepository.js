@@ -7,7 +7,7 @@
 
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
-const { logger } = require('../utils/logger');
+const { logger } = require('../utils/app-logger');
 
 const TAG = 'SimulationRepo';
 

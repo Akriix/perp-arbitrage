@@ -14,7 +14,7 @@
         "declaration": true,
         "moduleResolution": "node",
         "resolveJsonModule": true,
-        "allowJs": true,
+        "allowJs": false,
         "checkJs": false
     },
     "include": [

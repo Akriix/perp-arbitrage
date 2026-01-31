@@ -4,7 +4,7 @@
  */
 
 const { getPriceCache, updateMarketData } = require('../services/aggregator.service');
-const { logger } = require('../utils/logger');
+const { logger } = require('../utils/app-logger');
 
 const TAG = 'API';
 

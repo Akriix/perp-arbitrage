@@ -5,7 +5,7 @@
 
 import { EventEmitter } from 'events';
 import { MarketData, IExchangeService } from './BaseExchangeService';
-import { logger } from '../../utils/logger';
+import { logger } from '../../utils/app-logger';
 
 /** Configuration for hybrid exchange service */
 export interface HybridConfig {

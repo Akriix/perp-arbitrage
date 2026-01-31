@@ -1,62 +1,72 @@
 /**
- * Vest Exchange Service
- * Fetches perpetual futures data from Vest API
+ * Vest REST-Only Exchange Service
+ * WebSocket disabled due to Cloudflare 530 errors
+ * Uses REST polling exclusively for price data (via Hybrid Architecture)
  */
 
 import axios from 'axios';
-import { BaseExchangeService, MarketData, ExchangeConfig } from './BaseExchangeService';
-import { logger } from '../../utils/logger';
+import { HybridExchangeService, HybridConfig } from './HybridExchangeService';
+import { MarketData } from './BaseExchangeService';
+import { logger } from '../../utils/app-logger';
 import { API_ENDPOINTS } from '../../config/exchanges';
 import { ALLOWED_SYMBOLS, COMMON_HEADERS, REQUEST_TIMEOUT, CONCURRENCY } from '../../config';
-import { sleep } from '../../utils/sleep';
+import { sleep } from '../../utils/app-sleep';
 
 const TAG = 'Vest';
 
-class VestService extends BaseExchangeService {
+const STALE_THRESHOLD = 30000;
+
+class VestService extends HybridExchangeService {
     readonly name = 'VEST';
 
     constructor() {
-        const config: ExchangeConfig = {
+        const config: HybridConfig = {
             name: 'VEST',
-            apiEndpoint: API_ENDPOINTS.VEST_TICKER,
-            requestTimeout: REQUEST_TIMEOUT
+            wsUrl: '', // No WS
+            wsTimeout: 0,
+            staleThreshold: STALE_THRESHOLD
         };
         super(config);
     }
 
-    /**
-     * Fetch orderbook depth for a single symbol
-     */
-    private async fetchDepth(symbol: string): Promise<{ bid: number; ask: number } | null> {
-        try {
-            const url = `${API_ENDPOINTS.VEST_DEPTH}?symbol=${symbol}&limit=5`;
-            const res = await axios.get(url, { headers: COMMON_HEADERS, timeout: 3000 });
-
-            if (res.data?.bids?.length && res.data?.asks?.length) {
-                return {
-                    bid: this.parsePrice(res.data.bids[0][0]),
-                    ask: this.parsePrice(res.data.asks[0][0])
-                };
-            }
-        } catch (e) { /* Silent fail */ }
-        return null;
+    // Override start to use REST fallback immediately
+    async start(): Promise<void> {
+        logger.info(TAG, '📡 Mode: REST ONLY (WS Disabled to avoid 530 errors)');
+        this.startFallback();
     }
 
+    // ==================== WebSocket Stubs (Unused) ====================
+
+    protected async connectWebSocket(): Promise<void> {
+        // No-op
+    }
+
+    protected disconnectWebSocket(): void {
+        // No-op
+    }
+
+    protected subscribeToMarkets(): void {
+        // No-op
+    }
+
+    // ==================== REST Implementation ====================
+
+    /**
+     * Fetch markets via REST API
+     */
     async fetchMarkets(): Promise<MarketData[]> {
         const results: MarketData[] = [];
 
         try {
-            // 1. Get list of symbols from ticker
-            const res = await axios.get(this.apiEndpoint, {
+            const res = await axios.get(API_ENDPOINTS.VEST_TICKER, {
                 headers: COMMON_HEADERS,
-                timeout: this.requestTimeout
+                timeout: REQUEST_TIMEOUT
             });
 
             const tickers = res.data.tickers || [];
             const symbolsToFetch: { base: string; querySym: string }[] = [];
 
             tickers.forEach((t: any) => {
-                // Vest symbols appear as "SOL-PERP" or "ETH-PERP"
                 if (t.symbol.endsWith('-PERP')) {
                     const baseSymbol = t.symbol.split('-')[0];
                     if (ALLOWED_SYMBOLS.includes(baseSymbol)) {
@@ -65,15 +75,11 @@ class VestService extends BaseExchangeService {
                 }
             });
 
-            logger.debug(TAG, `Queued ${symbolsToFetch.length} symbols for depth fetch`);
-
-            // 2. Fetch depth for each symbol in batches
+            // Fetch depth for each symbol in batches
             for (let i = 0; i < symbolsToFetch.length; i += CONCURRENCY) {
                 const batch = symbolsToFetch.slice(i, i + CONCURRENCY);
                 const batchResults = await Promise.all(
-                    batch.map(item =>
-                        this.fetchDepth(item.querySym).then(data => ({ base: item.base, data }))
-                    )
+                    batch.map(item => this.fetchDepth(item.querySym).then(data => ({ base: item.base, data })))
                 );
 
                 batchResults.forEach(({ base, data }) => {
@@ -82,17 +88,31 @@ class VestService extends BaseExchangeService {
                     }
                 });
 
-                await sleep(100); // Rate limiting
+                await sleep(100);
             }
         } catch (error: any) {
-            logger.error(TAG, 'Error fetching markets', error);
+            logger.error(TAG, `REST fetch failed: ${error.message}`);
         }
 
-        logger.debug(TAG, `Returning ${results.length} pairs`);
         return results;
+    }
+
+    private async fetchDepth(symbol: string): Promise<{ bid: number; ask: number } | null> {
+        try {
+            const url = `${API_ENDPOINTS.VEST_DEPTH}?symbol=${symbol}&limit=5`;
+            const res = await axios.get(url, { headers: COMMON_HEADERS, timeout: 3000 });
+
+            if (res.data?.bids?.length && res.data?.asks?.length) {
+                return {
+                    bid: parseFloat(res.data.bids[0][0] || 0),
+                    ask: parseFloat(res.data.asks[0][0] || 0)
+                };
+            }
+        } catch (e) { }
+        return null;
     }
 }
 
-// Export singleton instance
+// Export singleton
 export const vestService = new VestService();
 export { VestService };

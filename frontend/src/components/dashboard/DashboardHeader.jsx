@@ -111,7 +111,7 @@ export default function DashboardHeader({
 
                     {/* Exchange Toggles */}
                     <div className="flex items-center gap-1.5 px-2">
-                        {['vest', 'lighter', 'paradex'].map((ex) => (
+                        {['vest', 'lighter', 'paradex', 'extended'].map((ex) => (
                             <button
                                 key={ex}
                                 onClick={() => toggleExchange(ex)}
